@@ -378,7 +378,7 @@ export default function PCBuilderPage() {
                                                 {component.image ? (
                                                     <img
                                                         src={component.image}
-                                                        alt={component.model}
+                                                        alt={component.model || "PC Component"}
                                                         className="w-full h-full object-contain p-1 group-hover:scale-110 transition-transform duration-500 will-change-transform"
                                                     />
                                                 ) : (
