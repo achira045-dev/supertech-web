@@ -1,37 +1,55 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0a0a0a;
-  --foreground: #ededed;
-  
-  /* Brand Colors */
-  --primary-red: #ff0033;
-  --primary-glow: rgba(255, 0, 51, 0.5);
-  --neon-blue: #00f2ff;
-  --card-bg: #1a1a1a;
+  --background: #f8f9fa;
+  --foreground: #1a1a1a;
+
+  /* Brand Colors - SPT (Blue/Orange) */
+  --primary-blue: #0047AB;
+  /* Cobalt Blue */
+  --primary-orange: #FF6600;
+  /* Safety Orange */
+  --secondary-blue: #002255;
+  /* Darker Blue */
+  --accent-gray: #f1f5f9;
+
+  --card-bg: #ffffff;
+  --text-muted: #64748b;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
   overflow-x: hidden;
+  /* Safe area for mobile bottom nav */
+  padding-bottom: env(safe-area-inset-bottom); 
 }
 
-/* Glassmorphism Utilities */
-.glass {
-  background: rgba(26, 26, 26, 0.7);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+/* Utilities */
+.card-shadow {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .text-gradient {
-  background: linear-gradient(to right, #ff0033, #ff6b00);
+  background: linear-gradient(to right, #ff5722, #ffc107);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
-.glow-text {
-  text-shadow: 0 0 10px var(--primary-glow);
+/* Hide scrollbar for Chrome, Safari and Opera */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* iOS Safe Area Utilities */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
 }
