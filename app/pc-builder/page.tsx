@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
-import { Monitor, Cpu, CheckCircle, Zap, ShieldCheck, Box, Disc, RefreshCcw, Save, Printer } from 'lucide-react';
+import { Monitor, Cpu, CheckCircle, Zap, ShieldCheck, Box, Disc, RefreshCcw, Save } from 'lucide-react';
+
 import { useCart } from '../context/CartContext';
 import { toast } from 'react-hot-toast';
 import { useProducts } from '../context/ProductContext';
@@ -107,7 +108,7 @@ export default function PCBuilderPage() {
             const components: any = {};
 
             // 1. Select GPU (Approx 40% of budget if > 25000, else iGPU/Entry)
-            let targetGpuPrice = budget >= 25000 ? budget * 0.4 : budget * 0.25;
+            const targetGpuPrice = budget >= 25000 ? budget * 0.4 : budget * 0.25;
 
             // Filter GPUs compatible with budget
             let compatibleGpus = DB.gpus.filter(g => g.price <= targetGpuPrice);
@@ -123,7 +124,7 @@ export default function PCBuilderPage() {
             currentBudget -= selectedGpu.price;
 
             // 2. Select CPU (Approx 25-30% of original budget)
-            let targetCpuPrice = budget * 0.3;
+            const targetCpuPrice = budget * 0.3;
             let compatibleCpus = DB.cpus.filter(c => c.price <= currentBudget && c.price <= targetCpuPrice * 1.5); // loose constraint
             // If iGPU selected, ensure CPU has iGPU (F series don't)
             if (selectedGpu.is_integrated) {

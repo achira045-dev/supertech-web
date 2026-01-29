@@ -2,7 +2,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useProducts } from '../context/ProductContext';
-import { ShoppingCart, Filter, ArrowUpDown, Star, ChevronDown, ChevronRight } from 'lucide-react';
+import { ShoppingCart, Filter, ChevronDown, ChevronRight } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useSearchParams } from 'next/navigation';
 
