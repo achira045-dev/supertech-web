@@ -46,12 +46,12 @@ export default function ProductPage() {
         if (!user || !product) return;
 
         const checkWishlistStatus = async () => {
-            const { data } = await supabase
-                .from('wishlist')
+            const { data } = await (supabase
+                .from('wishlist' as any)
                 .select('*')
                 .eq('user_id', user.id)
                 .eq('product_id', product.id)
-                .maybeSingle(); // Use maybeSingle to avoid error if not found
+                .maybeSingle() as any); // Use maybeSingle to avoid error if not found
 
             if (data) setIsWishlisted(true);
             else setIsWishlisted(false);
@@ -72,17 +72,17 @@ export default function ProductPage() {
 
         if (isWishlisted) {
             // Remove
-            const { error } = await supabase
-                .from('wishlist')
+            const { error } = await (supabase
+                .from('wishlist' as any)
                 .delete()
                 .eq('user_id', user.id)
-                .eq('product_id', product.id);
+                .eq('product_id', product.id) as any);
             if (!error) setIsWishlisted(false);
         } else {
             // Add
-            const { error } = await supabase
-                .from('wishlist')
-                .insert({ user_id: user.id, product_id: product.id });
+            const { error } = await (supabase
+                .from('wishlist' as any)
+                .insert({ user_id: user.id, product_id: product.id }) as any);
             if (!error) setIsWishlisted(true);
         }
     };
@@ -389,14 +389,14 @@ function ProductReviewsList({ productId }: { productId: any }) {
 
     const handleSaveEdit = async (id: string) => {
         try {
-            const { error } = await supabase
-                .from('reviews')
+            const { error } = await (supabase
+                .from('reviews' as any)
                 .update({
                     comment: editComment,
                     rating: editRating,
                     updated_at: new Date().toISOString()
                 })
-                .eq('id', id);
+                .eq('id', id) as any);
 
             if (error) throw error;
 
@@ -413,10 +413,10 @@ function ProductReviewsList({ productId }: { productId: any }) {
         if (!confirm('คุณต้องการลบรีวิวนี้ใช่หรือไม่?')) return;
 
         try {
-            const { error } = await supabase
-                .from('reviews')
+            const { error } = await (supabase
+                .from('reviews' as any)
                 .delete()
-                .eq('id', id);
+                .eq('id', id) as any);
 
             if (error) throw error;
 

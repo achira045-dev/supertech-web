@@ -47,7 +47,8 @@ export default function CheckoutPage() {
     }, [user]);
 
     const fetchAddresses = async () => {
-        const { data } = await supabase.from('address').select('*').eq('user_id', user?.id).order('is_default', { ascending: false });
+        if (!user) return;
+        const { data } = await supabase.from('addresses').select('*').eq('user_id', user.id).order('is_default', { ascending: false });
         if (data) {
             setSavedAddresses(data);
             // Auto-select default or first if address not set
@@ -79,7 +80,7 @@ export default function CheckoutPage() {
         }
 
         if (user) {
-            const { error } = await supabase.from('address').insert({
+            const { error } = await supabase.from('addresses').insert({
                 user_id: user.id,
                 ...newAddressForm,
                 is_default: savedAddresses.length === 0
@@ -91,7 +92,7 @@ export default function CheckoutPage() {
                 // We'll trust fetchAddresses to run.
                 // But we want to Select the new one.
                 // Quick fix: Fetch again immediately and select the latest?
-                const { data } = await supabase.from('address').select('*').eq('user_id', user.id).order('id', { ascending: false }).limit(1).single();
+                const { data } = await supabase.from('addresses').select('*').eq('user_id', user.id).order('id', { ascending: false }).limit(1).single();
                 if (data) selectAddress(data);
             } else {
                 alert('เกิดข้อผิดพลาด: ' + error.message);
@@ -103,12 +104,12 @@ export default function CheckoutPage() {
             // We don't save to DB for guest, but we populate the Order Address
         }
         setIsAddingNew(false);
-        setNewAddressForm({ recipient_name: '', phone: '', address: '', district: '', province: '', zipcode: '' });
+        setNewAddressForm({ recipient_name: '', phone: '', address: '', sub_district: '', district: '', province: '', zipcode: '' });
     };
 
     const handleDeleteAddress = async (id: number) => {
         if (!confirm('ยืนยันการลบที่อยู่?')) return;
-        await supabase.from('address').delete().eq('id', id);
+        await supabase.from('addresses').delete().eq('id', id);
         fetchAddresses();
         if (selectedAddressId === id) {
             setAddress({ fullName: '', phone: '', fullAddress: '', province: '', zipCode: '' });

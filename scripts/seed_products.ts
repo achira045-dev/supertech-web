@@ -31,7 +31,7 @@ const categories = [
     'ซีพียู', 'เมนบอร์ด', 'การ์ดจอ', 'แรม', 'SSD', 'พาวเวอร์ซัพพลาย', 'เคส', 'ชุดระบายความร้อน', 'จอมอนิเตอร์', 'เก้าอี้เกมมิ่ง'
 ];
 
-const mockProducts = [];
+const mockProducts: any[] = [];
 
 // CPU (Inte/AMD) - 15 items
 const cpus = [

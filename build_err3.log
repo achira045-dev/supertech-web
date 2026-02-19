@@ -1,0 +1,32 @@
+
+> super-tech@0.1.0 build
+> next build --turbopack
+
+   ▲ Next.js 15.5.0 (Turbopack)
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Finished writing to disk in 82ms
+ ✓ Compiled successfully in 3.0s
+   Skipping linting
+   Checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/15) ...
+ ⚠ Unsupported metadata viewport is configured in metadata export in /_not-found. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⚠ Unsupported metadata viewport is configured in metadata export in /dashboard/customer. Please move it to viewport export instead.
+Read more: https://nextjs.org/docs/app/api-reference/functions/generate-viewport
+ ⨯ useSearchParams() should be wrapped in a suspense boundary at page "/dashboard/customer". Read more: https://nextjs.org/docs/messages/missing-suspense-with-csr-bailout
+    at g (C:\Users\HP\supertech100\.next\server\chunks\ssr\node_modules_next_dist_042de4b7._.js:4:5016)
+    at m (C:\Users\HP\supertech100\.next\server\chunks\ssr\node_modules_next_dist_042de4b7._.js:4:6650)
+    at C (C:\Users\HP\supertech100\.next\server\chunks\ssr\app_dashboard_customer_page_tsx_e4cbbc45._.js:1:558)
+    at n3 (C:\Users\HP\supertech100\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:82831)
+    at n6 (C:\Users\HP\supertech100\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:84601)
+    at n5 (C:\Users\HP\supertech100\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:104801)
+    at n7 (C:\Users\HP\supertech100\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:102219)
+    at n8 (C:\Users\HP\supertech100\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:83183)
+    at n6 (C:\Users\HP\supertech100\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:84647)
+    at n6 (C:\Users\HP\supertech100\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.prod.js:2:101560)
+Error occurred prerendering page "/dashboard/customer". Read more: https://nextjs.org/docs/messages/prerender-error
+Export encountered an error on /dashboard/customer/page: /dashboard/customer, exiting the build.
+ ⨯ Next.js build worker exited with code: 1 and signal: null

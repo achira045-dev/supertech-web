@@ -9,9 +9,7 @@ export type Json =
 export type Database = {
     // Allows to automatically instantiate createClient with right options
     // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-    __InternalSupabase: {
-        PostgrestVersion: "14.1"
-    }
+
     public: {
         Tables: {
             addresses: {
@@ -280,8 +278,12 @@ export type Tables<
     | keyof (PublicSchema["Tables"] & PublicSchema["Views"])
     | { schema: keyof Database },
     TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-        Database[PublicTableNameOrOptions["schema"]]["Views"])
+    ? keyof (Database[PublicTableNameOrOptions["schema"] extends keyof Database ? PublicTableNameOrOptions["schema"] : never] extends { Tables: any }
+        ? Database[PublicTableNameOrOptions["schema"]]["Tables"]
+        : never &
+        Database[PublicTableNameOrOptions["schema"] extends keyof Database ? PublicTableNameOrOptions["schema"] : never] extends { Views: any }
+        ? Database[PublicTableNameOrOptions["schema"]]["Views"]
+        : never)
     : never = never,
 > = PublicTableNameOrOptions extends { schema: keyof Database }
     ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &

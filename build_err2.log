@@ -1,0 +1,25 @@
+
+> super-tech@0.1.0 build
+> next build --turbopack
+
+   ▲ Next.js 15.5.0 (Turbopack)
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Finished writing to disk in 93ms
+ ✓ Compiled successfully in 3.0s
+   Skipping linting
+   Checking validity of types ...
+Failed to compile.
+
+./types/supabase.ts:283:14
+Type error: Type '"Tables"' cannot be used to index type 'Database[PublicTableNameOrOptions["schema"]]'.
+
+[0m [90m 281 |[39m     [33m|[39m { schema[33m:[39m keyof [33mDatabase[39m }[33m,[39m
+ [90m 282 |[39m     [33mTableName[39m [36mextends[39m [33mPublicTableNameOrOptions[39m [36mextends[39m { schema[33m:[39m keyof [33mDatabase[39m }
+[31m[1m>[22m[39m[90m 283 |[39m     [33m?[39m keyof ([33mDatabase[39m[[33mPublicTableNameOrOptions[39m[[32m"schema"[39m]][[32m"Tables"[39m] [33m&[39m
+ [90m     |[39m              [31m[1m^[22m[39m
+ [90m 284 |[39m         [33mDatabase[39m[[33mPublicTableNameOrOptions[39m[[32m"schema"[39m]][[32m"Views"[39m])
+ [90m 285 |[39m     [33m:[39m never [33m=[39m never[33m,[39m
+ [90m 286 |[39m [33m>[39m [33m=[39m [33mPublicTableNameOrOptions[39m [36mextends[39m { schema[33m:[39m keyof [33mDatabase[39m }[0m
+Next.js build worker exited with code: 1 and signal: null

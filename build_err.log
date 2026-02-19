@@ -1,0 +1,25 @@
+
+> super-tech@0.1.0 build
+> next build --turbopack
+
+   ▲ Next.js 15.5.0 (Turbopack)
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Finished writing to disk in 94ms
+ ✓ Compiled successfully in 2.9s
+   Skipping linting
+   Checking validity of types ...
+Failed to compile.
+
+./scripts/seed_products.ts:34:7
+Type error: Variable 'mockProducts' implicitly has type 'any[]' in some locations where its type cannot be determined.
+
+[0m [90m 32 |[39m ][33m;[39m
+ [90m 33 |[39m
+[31m[1m>[22m[39m[90m 34 |[39m [36mconst[39m mockProducts [33m=[39m [][33m;[39m
+ [90m    |[39m       [31m[1m^[22m[39m
+ [90m 35 |[39m
+ [90m 36 |[39m [90m// CPU (Inte/AMD) - 15 items[39m
+ [90m 37 |[39m [36mconst[39m cpus [33m=[39m [[0m
+Next.js build worker exited with code: 1 and signal: null

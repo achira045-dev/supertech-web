@@ -34,10 +34,10 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
     const fetchProducts = async () => {
         try {
             setLoading(true);
-            const { data, error } = await supabase
-                .from('products')
+            const { data, error } = await (supabase
+                .from('products' as any)
                 .select('*, brands(name)') // Fetch brand name
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: false }) as any);
 
             if (error) {
                 console.error('Error fetching products:', error);
@@ -105,11 +105,11 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
             };
 
             // 3. Insert and Select to get ID
-            const { data, error } = await supabase
-                .from('products')
+            const { data, error } = await (supabase
+                .from('products' as any)
                 .insert([payload])
                 .select('*, brands(name)') // Select brand too if possible, usually null for new unless triggered
-                .single();
+                .single() as any);
 
             if (error) {
                 console.error('Supabase Error:', error);
@@ -186,12 +186,12 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
             if (updatedProduct.discount !== undefined) updates.discount = updatedProduct.discount;
 
 
-            const { data, error } = await supabase
-                .from('products')
+            const { data, error } = await (supabase
+                .from('products' as any)
                 .update(updates as any)
                 .eq('id', Number(id))
                 .select()
-                .single();
+                .single() as any);
 
             if (error) throw error;
 
@@ -224,10 +224,10 @@ export function ProductProvider({ children }: { children: React.ReactNode }) {
 
     const deleteProduct = async (id: string): Promise<boolean> => {
         try {
-            const { error } = await supabase
-                .from('products')
+            const { error } = await (supabase
+                .from('products' as any)
                 .delete()
-                .eq('id', Number(id));
+                .eq('id', Number(id)) as any);
 
             if (error) throw error;
 

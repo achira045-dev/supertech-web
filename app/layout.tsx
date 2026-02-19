@@ -15,7 +15,15 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Supertech | Gaming Gear & PC Store",
   description: "สุดยอดร้านค้าอุปกรณ์เกมมิ่งเกียร์และคอมพิวเตอร์",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0",
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false, // user-scalable=0 maps to boolean false usually or "no" 
+  // actually userScalable expects boolean in Next.js type if I recall correctly
+  // Let's check docs or be safe with specific string if typed as Viewport
 };
 
 export default function RootLayout({

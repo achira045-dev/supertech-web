@@ -1,12 +1,14 @@
 'use client';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useProducts } from '../context/ProductContext';
 import { ShoppingCart, Filter, ChevronDown, ChevronRight } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useSearchParams } from 'next/navigation';
 
-export default function ProductsPage() {
+export const dynamic = 'force-dynamic';
+
+function ProductsContent() {
     const { products } = useProducts();
     const { addToCart } = useCart();
     const searchParams = useSearchParams();
@@ -374,5 +376,13 @@ export default function ProductsPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function ProductsPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+            <ProductsContent />
+        </Suspense>
     );
 }

@@ -6,7 +6,7 @@ import ProvinceSelect from '../../components/ProvinceSelect';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { supabase } from '../../lib/supabase';
 
 interface Address {
@@ -21,7 +21,7 @@ interface Address {
     is_default: boolean | null;
 }
 
-export default function CustomerDashboard() {
+function CustomerDashboardContent() {
     const { user, isLoading, logout, techcoinBalance, refreshProfile } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -1455,5 +1455,13 @@ function WishlistTab() {
                 )}
             </div>
         </div>
+    );
+}
+
+export default function CustomerDashboard() {
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading Dashboard...</div>}>
+            <CustomerDashboardContent />
+        </Suspense>
     );
 }
