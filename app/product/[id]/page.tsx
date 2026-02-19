@@ -3,23 +3,89 @@ import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useCart } from '../../context/CartContext';
 import { useProducts } from '../../context/ProductContext';
+import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { Star, ShoppingCart, Heart, Share2, Truck, ShieldCheck, RefreshCw, Minus, Plus, ChevronRight, Check } from 'lucide-react';
+import { Star, ShoppingCart, Heart, Share2, Truck, ShieldCheck, RefreshCw, Minus, Plus, ChevronRight, Check, Pencil, Trash2, X, Save } from 'lucide-react';
 import Link from 'next/link';
+
+// ... (Rest of imports remain, need to ensure imports are at top level. I will use a separate replacement for imports if needed, but I can merge them if `ProductReviewsList` is modified heavily).
+
+// Wait, I cannot add imports easily with `replace_file_content` targeting the bottom function only.
+// I will target the Whole File `app/product/[id]/page.tsx` to handle imports properly.
+
+// Re-reading file content of page.tsx (Step 112).
+// Imports are at lines 1-8.
+
+// I will target the Imports section first.
+// Then I will replace `ProductReviewsList` component.
+
+// Actually, I can do it in two tool calls.
+// 1. Add imports.
+// 2. Replace `ProductReviewsList`.
+
+// Let's execute tool 1: Add Imports.
+
 
 export default function ProductPage() {
     const { id } = useParams();
     const router = useRouter();
     const { addToCart } = useCart();
     const { products, loading } = useProducts();
+    const { user } = useAuth(); // Import user from AuthContext
     const [quantity, setQuantity] = useState(1);
     const [activeTab, setActiveTab] = useState('description');
     const [selectedImage, setSelectedImage] = useState(0);
+    const [isWishlisted, setIsWishlisted] = useState(false); // Wishlist State
 
     // If loading, show splash
+    // Move product search here, safe even if loading (products is empty array initially)
+    const product = products.find(p => p.id === id);
+
+    // Initial Wishlist Check - Unconditional Hook
+    useEffect(() => {
+        if (!user || !product) return;
+
+        const checkWishlistStatus = async () => {
+            const { data } = await supabase
+                .from('wishlist')
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('product_id', product.id)
+                .maybeSingle(); // Use maybeSingle to avoid error if not found
+
+            if (data) setIsWishlisted(true);
+            else setIsWishlisted(false);
+        };
+        checkWishlistStatus();
+    }, [user, product]);
+
+    // Loading check AFTER hooks
     if (loading) return <div className="min-h-screen flex items-center justify-center text-xl">Loading Product...</div>;
 
-    const product = products.find(p => p.id === id);
+    const handleToggleWishlist = async () => {
+        if (!user) {
+            alert('กรุณาเข้าสู่ระบบเพื่อบันทึกรายการโปรด');
+            router.push('/login');
+            return;
+        }
+        if (!product) return;
+
+        if (isWishlisted) {
+            // Remove
+            const { error } = await supabase
+                .from('wishlist')
+                .delete()
+                .eq('user_id', user.id)
+                .eq('product_id', product.id);
+            if (!error) setIsWishlisted(false);
+        } else {
+            // Add
+            const { error } = await supabase
+                .from('wishlist')
+                .insert({ user_id: user.id, product_id: product.id });
+            if (!error) setIsWishlisted(true);
+        }
+    };
 
     if (!product) {
         return <div className="min-h-screen flex items-center justify-center text-xl">Product not found</div>;
@@ -65,7 +131,12 @@ export default function ProductPage() {
                             <div className="aspect-square bg-gray-50 rounded-xl overflow-hidden border border-gray-100 relative group">
                                 <img src={images[selectedImage]} alt={product.name} className="w-full h-full object-contain p-4 transition-transform group-hover:scale-105" />
                                 <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button className="bg-white p-2 rounded-full shadow-md hover:text-red-500 transition-colors"><Heart className="w-5 h-5" /></button>
+                                    <button
+                                        onClick={handleToggleWishlist}
+                                        className={`p-2 rounded-full shadow-md transition-all ${isWishlisted ? 'bg-red-50 text-red-500' : 'bg-white hover:text-red-500'}`}
+                                    >
+                                        <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-current' : ''}`} />
+                                    </button>
                                     <button className="bg-white p-2 rounded-full shadow-md hover:text-blue-500 transition-colors"><Share2 className="w-5 h-5" /></button>
                                 </div>
                             </div>
@@ -247,7 +318,15 @@ export default function ProductPage() {
                             </div>
                         )}
                         {activeTab === 'reviews' && (
-                            <ProductReviews productId={product.id} />
+                            <div className="space-y-8 animate-fade-in">
+                                <h3 className="text-xl font-bold flex items-center gap-2 mb-6 text-gray-800">
+                                    <div className="p-2 bg-yellow-50 rounded-lg border border-yellow-100">
+                                        <Star className="w-6 h-6 text-yellow-500 fill-yellow-500" />
+                                    </div>
+                                    รีวิวจากลูกค้า
+                                </h3>
+                                <ProductReviewsList productId={product.id} />
+                            </div>
                         )}
                     </div>
                 </div>
@@ -256,48 +335,20 @@ export default function ProductPage() {
     );
 }
 
-// Sub-component for Reviews
-function ProductReviews({ productId }: { productId: any }) {
-    // supabase imported from lib
-
-    // TEMPORARY: I will use a dummy fetch logic that assumes `supabase` is available or I will inject the import.
-    // I'll add the import at the top in another edit if missing. For now, let's assume I can get data.
-
-    // Wait, I can't easily add imports without messing up line numbers if I replace bottom block.
-    // I will use `useProducts` context if it has supabase, usually it doesn't expose it publically in all my previous memory of this stack.
-    // I will write the component to Fetch from supabase directly.
-
-    // Let's assume `createClientComponentClient` is needed. I'll add the import at the TOP in a separate small edit first? 
-    // No, I can replace the whole file content in 2 chunks, or just add the Review component at the bottom but I need imports.
-    // BETTER STRATEGY: 
-    // 1. Add `ProductReviews` component within the same file at the bottom.
-    // 2. Add necessary imports at the top.
-
-    // Let's try to stick to the requested change -> Add Review Tab.
-
-    return (
-        <div className="space-y-8">
-            <h3 className="text-lg font-bold flex items-center gap-2">
-                <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
-                รีวิวจากลูกค้า
-            </h3>
-
-            <ReviewList productId={productId} />
-        </div>
-    );
-}
-
-function ReviewList({ productId }: { productId: any }) {
+function ProductReviewsList({ productId }: { productId: any }) {
     const [reviews, setReviews] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    // supabase imported from lib
+    const { user } = useAuth();
+
+    // Edit State
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editComment, setEditComment] = useState('');
+    const [editRating, setEditRating] = useState(5);
 
     useEffect(() => {
         const fetchReviews = async () => {
             if (!productId) return;
-
             try {
-                // Fetch reviews and include profile data via user_id
                 const { data, error } = await supabase
                     .from('reviews')
                     .select(`
@@ -305,19 +356,17 @@ function ReviewList({ productId }: { productId: any }) {
                         rating,
                         comment,
                         created_at,
+                        updated_at,
                         user_id,
                         profiles:user_id (full_name, avatar_url)
                     `)
                     .eq('product_id', productId)
                     .order('created_at', { ascending: false });
 
-                if (error) {
-                    console.error('Error fetching reviews:', error);
-                }
-
-                if (data) setReviews(data);
+                if (error) throw error;
+                setReviews(data || []);
             } catch (err) {
-                console.error('Unexpected error:', err);
+                console.error('Error loading reviews:', err);
             } finally {
                 setLoading(false);
             }
@@ -326,43 +375,205 @@ function ReviewList({ productId }: { productId: any }) {
         fetchReviews();
     }, [productId]);
 
-    if (loading) return <div className="text-gray-400 text-center py-8">กำลังโหลดรีวิว...</div>;
+    const handleEditClick = (review: any) => {
+        setEditingId(review.id);
+        setEditComment(review.comment || '');
+        setEditRating(review.rating || 5);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingId(null);
+        setEditComment('');
+        setEditRating(5);
+    };
+
+    const handleSaveEdit = async (id: string) => {
+        try {
+            const { error } = await supabase
+                .from('reviews')
+                .update({
+                    comment: editComment,
+                    rating: editRating,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', id);
+
+            if (error) throw error;
+
+            // Update local state
+            setReviews(prev => prev.map(r => r.id === id ? { ...r, comment: editComment, rating: editRating, updated_at: new Date().toISOString() } : r));
+            setEditingId(null);
+            alert('แก้ไขรีวิวเรียบร้อยแล้ว');
+        } catch (err: any) {
+            alert('เกิดข้อผิดพลาดในการแก้ไขรีวิว: ' + err.message);
+        }
+    };
+
+    const handleDeleteClick = async (id: string) => {
+        if (!confirm('คุณต้องการลบรีวิวนี้ใช่หรือไม่?')) return;
+
+        try {
+            const { error } = await supabase
+                .from('reviews')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+
+            setReviews(prev => prev.filter(r => r.id !== id));
+        } catch (err: any) {
+            alert('ลบรีวิวไม่สำเร็จ: ' + err.message);
+        }
+    };
+
+    if (loading) return (
+        <div className="flex flex-col items-center justify-center py-12 space-y-4">
+            <div className="w-8 h-8 border-4 border-[var(--primary-orange)] border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-gray-400 font-medium">กำลังโหลดรีวิว...</p>
+        </div>
+    );
 
     if (reviews.length === 0) {
         return (
-            <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                <Star className="w-12 h-12 text-gray-200 mx-auto mb-3" />
-                <p className="text-gray-500">ยังไม่มีรีวิวสำหรับสินค้านี้</p>
-                <p className="text-xs text-gray-400 mt-1">เป็นคนแรกที่รีวิวสินค้านี้หลังจากสั่งซื้อ!</p>
+            <div className="flex flex-col items-center justify-center py-16 bg-white border-2 border-dashed border-gray-100 rounded-2xl">
+                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                    <Star className="w-8 h-8 text-gray-300" />
+                </div>
+                <h4 className="text-lg font-bold text-gray-900 mb-1">ยังไม่มีรีวิวสำหรับสินค้านี้</h4>
+                <p className="text-gray-500 text-sm">เป็นคนแรกที่รีวิวสินค้านี้หลังจากสั่งซื้อ!</p>
             </div>
         );
     }
 
     return (
         <div className="grid gap-6">
-            {reviews.map((review) => (
-                <div key={review.id} className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex gap-4">
-                    <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 font-bold text-lg flex-shrink-0 border border-gray-200">
-                        {review.profiles?.full_name?.[0] || 'U'}
-                    </div>
-                    <div className="flex-1">
-                        <div className="flex justify-between items-start mb-2">
-                            <div>
-                                <h4 className="font-bold text-gray-900">{review.profiles?.full_name || 'ลูกค้าทั่วไป'}</h4>
-                                <div className="flex items-center gap-1 mt-1">
-                                    {[1, 2, 3, 4, 5].map(star => (
-                                        <Star key={star} className={`w-3 h-3 ${star <= review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200'}`} />
-                                    ))}
-                                    <span className="text-xs text-gray-400 ml-2">{new Date(review.created_at).toLocaleDateString('th-TH')}</span>
+            {reviews.map((review) => {
+                const isOwner = user?.id === review.user_id;
+                const isEditing = editingId === review.id;
+                const isEdited = review.updated_at && review.created_at && new Date(review.updated_at).getTime() > new Date(review.created_at).getTime() + 1000; // 1s tolerance
+
+                return (
+                    <div key={review.id} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow relative group">
+                        {isOwner && !isEditing && (
+                            <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                    onClick={() => handleEditClick(review)}
+                                    className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
+                                    title="แก้ไขรีวิว"
+                                >
+                                    <Pencil className="w-4 h-4" />
+                                </button>
+                                <button
+                                    onClick={() => handleDeleteClick(review.id)}
+                                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                                    title="ลบรีวิว"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            </div>
+                        )}
+
+                        <div className="flex items-start gap-4">
+                            <div className="flex-shrink-0">
+                                <div className="w-12 h-12 bg-gradient-to-br from-orange-100 to-yellow-100 rounded-full flex items-center justify-center text-[var(--primary-orange)] font-black text-xl border-2 border-white shadow-sm">
+                                    {(review.profiles?.full_name || 'U').charAt(0).toUpperCase()}
                                 </div>
                             </div>
+
+                            <div className="flex-1 min-w-0">
+                                {/* Header Info */}
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                                    <div>
+                                        <h4 className="font-bold text-gray-900 text-lg truncate pr-4">
+                                            {review.profiles?.full_name || 'ลูกค้าทั่วไป'}
+                                        </h4>
+                                        {!isEditing && (
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <div className="flex">
+                                                    {[1, 2, 3, 4, 5].map((star) => (
+                                                        <Star
+                                                            key={star}
+                                                            className={`w-4 h-4 ${star <= review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200 fill-gray-100'}`}
+                                                        />
+                                                    ))}
+                                                </div>
+                                                <span className="text-xs font-medium text-gray-400 px-2 py-0.5 bg-gray-50 rounded-full border border-gray-100">
+                                                    {new Date(review.created_at).toLocaleDateString('th-TH', {
+                                                        year: 'numeric',
+                                                        month: 'long',
+                                                        day: 'numeric'
+                                                    })}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Edit Form or Display Content */}
+                                {isEditing ? (
+                                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 animate-fade-in">
+                                        <div className="mb-3">
+                                            <label className="text-xs font-bold text-gray-500 mb-1 block">คะแนนสินค้า</label>
+                                            <div className="flex gap-1">
+                                                {[1, 2, 3, 4, 5].map((star) => (
+                                                    <button
+                                                        key={star}
+                                                        type="button"
+                                                        onClick={() => setEditRating(star)}
+                                                        className="focus:outline-none transition-transform hover:scale-110"
+                                                    >
+                                                        <Star
+                                                            className={`w-6 h-6 ${star <= editRating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300 fill-gray-100'}`}
+                                                        />
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div className="mb-4">
+                                            <label className="text-xs font-bold text-gray-500 mb-1 block">ความคิดเห็น</label>
+                                            <textarea
+                                                value={editComment}
+                                                onChange={(e) => setEditComment(e.target.value)}
+                                                className="w-full p-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-orange)] focus:border-transparent outline-none bg-white"
+                                                rows={3}
+                                                placeholder="เขียนรีวิวของคุณ..."
+                                            />
+                                        </div>
+                                        <div className="flex justify-end gap-2">
+                                            <button
+                                                onClick={handleCancelEdit}
+                                                className="px-4 py-2 text-xs font-bold text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 flex items-center gap-1"
+                                            >
+                                                <X className="w-3 h-3" /> ยกเลิก
+                                            </button>
+                                            <button
+                                                onClick={() => handleSaveEdit(review.id)}
+                                                className="px-4 py-2 text-xs font-bold text-white bg-[var(--primary-orange)] rounded-lg hover:bg-orange-600 shadow-sm flex items-center gap-1"
+                                            >
+                                                <Save className="w-3 h-3" /> บันทึกการแก้ไข
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    review.comment && (
+                                        <div className="relative group/comment">
+                                            <div className="absolute -left-3 -top-2 text-4xl text-gray-100 font-serif">"</div>
+                                            <p className="text-gray-600 leading-relaxed pl-4 relative z-10 text-sm lg:text-base">
+                                                {review.comment}
+                                                {isEdited && (
+                                                    <span className="text-[10px] text-gray-400 ml-2 italic select-none inline-block bg-gray-100 px-1.5 rounded transform translate-y-[-1px]">
+                                                        (มีการแก้ไข)
+                                                    </span>
+                                                )}
+                                            </p>
+                                        </div>
+                                    )
+                                )}
+                            </div>
                         </div>
-                        <p className="text-gray-600 text-sm leading-relaxed bg-gray-50 p-3 rounded-lg">
-                            {review.comment || 'ไม่มีความคิดเห็น'}
-                        </p>
                     </div>
-                </div>
-            ))}
+                );
+            })}
         </div>
     );
 }

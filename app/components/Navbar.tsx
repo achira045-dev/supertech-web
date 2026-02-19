@@ -1,8 +1,9 @@
 'use client';
 import Link from 'next/link';
-import { ShoppingCart, User, Search, LogOut, Grid, ChevronDown, ChevronRight, Store, X, Gift, Monitor } from 'lucide-react';
+import { ShoppingCart, User, Search, LogOut, Grid, ChevronDown, ChevronRight, Store, X, Gift, Monitor, MessageCircle } from 'lucide-react';
 import TechcoinIcon from './TechcoinIcon';
 import { useState, useRef, useEffect } from 'react';
+import ChatSystem from './ChatSystem';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useProducts } from '../context/ProductContext';
@@ -25,6 +26,7 @@ export default function Navbar() {
     const [showSearchResults, setShowSearchResults] = useState(false);
     const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false); // New Mobile State
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false); // New User Menu State
+    const [isChatOpen, setIsChatOpen] = useState(false);
     const searchRef = useRef<HTMLDivElement>(null);
 
     const handleLogout = async () => {
@@ -374,6 +376,18 @@ export default function Navbar() {
                             <span className="text-xs mt-1.5 font-medium">รถเข็น</span>
                         </Link>
 
+                        {user && (
+                            <button
+                                onClick={() => setIsChatOpen(true)}
+                                className="hidden md:flex flex-col items-center text-gray-600 hover:text-[var(--primary-orange)] transition-colors group relative"
+                            >
+                                <div className="relative">
+                                    <MessageCircle className="h-6 w-6 group-hover:scale-110 transition-transform" />
+                                </div>
+                                <span className="text-xs mt-1.5 font-medium">แชท</span>
+                            </button>
+                        )}
+
                         {user ? (
                             <div className="relative group flex flex-col items-center cursor-pointer hidden md:flex">
                                 <button
@@ -479,6 +493,7 @@ export default function Navbar() {
                     </div>
                 )
             }
+            {isChatOpen && <ChatSystem onClose={() => setIsChatOpen(false)} />}
         </nav >
     );
 }

@@ -1,9 +1,10 @@
 'use client';
-import { Package, Heart, MapPin, CreditCard, LogOut, User, Clock, CheckCircle, Truck, Search, ChevronRight, X, AlertCircle, ShoppingBag, Star, ArrowUpRight, ArrowDownLeft, Gift, Plus, Trash2, Edit } from 'lucide-react';
+import { Package, Heart, MapPin, CreditCard, LogOut, User, Clock, CheckCircle, Truck, Search, ChevronRight, X, AlertCircle, ShoppingBag, Star, ArrowUpRight, ArrowDownLeft, Gift, Plus, Trash2, Edit, ShoppingCart } from 'lucide-react';
 import TechcoinIcon from '../../components/TechcoinIcon';
 import Link from 'next/link';
 import ProvinceSelect from '../../components/ProvinceSelect';
 import { useAuth } from '../../context/AuthContext';
+import { useCart } from '../../context/CartContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
@@ -14,7 +15,7 @@ interface Address {
     phone: string | null;
     address: string | null;
     district: string | null;
-    sub_district: string | null;
+    sub_district?: string | null;
     province: string | null;
     zipcode: string | null;
     is_default: boolean | null;
@@ -29,6 +30,7 @@ export default function CustomerDashboard() {
     const [activeTab, setActiveTab] = useState(initialTab);
     const [isEditing, setIsEditing] = useState(false);
     const [loadingOrders, setLoadingOrders] = useState(false);
+    const [loadingData, setLoadingData] = useState(false);
 
     const fetchOrders = async () => {
         setLoadingOrders(true);
@@ -205,7 +207,7 @@ export default function CustomerDashboard() {
 
     const fetchAddresses = async () => {
         if (!user) return;
-        const { data } = await supabase.from('address').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
+        const { data } = await supabase.from('addresses').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
         if (data) setAddresses(data);
     };
 
@@ -260,9 +262,14 @@ export default function CustomerDashboard() {
         e.preventDefault();
         if (!user) return;
 
-        const { error } = await supabase.from('address').insert({
+        const { error } = await supabase.from('addresses').insert({
             user_id: user.id,
-            ...newAddress,
+            recipient_name: newAddress.recipient_name,
+            phone: newAddress.phone,
+            address: `${newAddress.address} ${newAddress.sub_district}`, // Combine sub_district into address as specific column is missing
+            district: newAddress.district,
+            province: newAddress.province,
+            zipcode: newAddress.zipcode,
             is_default: addresses.length === 0 // First address is default
         });
 
@@ -271,19 +278,19 @@ export default function CustomerDashboard() {
         } else {
             alert('เพิ่มที่อยู่เรียบร้อย');
             setIsAddingAddress(false);
-            setNewAddress({ recipient_name: '', phone: '', address: '', district: '', province: '', zipcode: '' });
+            setNewAddress({ recipient_name: '', phone: '', address: '', sub_district: '', district: '', province: '', zipcode: '' });
             fetchAddresses();
         }
     };
 
     // Orders & Reviews State
     const [orders, setOrders] = useState<any[]>([]);
-    const [userReviews, setUserReviews] = useState<Set<number>>(new Set());
+    const [userReviews, setUserReviews] = useState<Set<string>>(new Set());
     const [cancelModalOpen, setCancelModalOpen] = useState(false);
     const [cancelOrderId, setCancelOrderId] = useState<number | null>(null);
     const [cancelReason, setCancelReason] = useState('');
     const [reviewModalOpen, setReviewModalOpen] = useState(false);
-    const [reviewData, setReviewData] = useState({ productId: 0, rating: 5, comment: '' });
+    const [reviewData, setReviewData] = useState({ orderId: 0, productId: 0, rating: 5, comment: '' });
     const [activeOrderFilter, setActiveOrderFilter] = useState('all');
 
     // Techcoin State
@@ -295,9 +302,15 @@ export default function CustomerDashboard() {
 
     const fetchUserReviews = async () => {
         if (!user) return;
-        const { data } = await supabase.from('reviews').select('product_id').eq('user_id', user.id);
+        // Select order_id as well to distinguish reviews per order
+        const { data } = await (supabase.from('reviews' as any).select('product_id, order_id').eq('user_id', user.id) as any);
         if (data) {
-            setUserReviews(new Set(data.map(r => r.product_id)));
+            // Store unique key combo: "orderId-productId"
+            // If order_id is null (legacy reviews), we might fallback to just productId check or ignore?
+            // For now, let's track both styles or standardise.
+            // If a review has order_id, use it. If not, use 'null-productId'.
+            const verifiedReviews = new Set((data as any[]).map((r: any) => `${r.order_id || 'null'}-${r.product_id}`));
+            setUserReviews(verifiedReviews);
         }
     };
 
@@ -337,13 +350,14 @@ export default function CustomerDashboard() {
 
     const handleDeleteAddress = async (id: number) => {
         if (!confirm('ยืนยันการลบที่อยู่นี้?')) return;
-        const { error } = await supabase.from('address').delete().eq('id', id);
+        const { error } = await supabase.from('addresses').delete().eq('id', id);
         if (error) {
             alert('เกิดข้อผิดพลาดในการลบที่อยู่: ' + error.message);
         } else {
             fetchAddresses();
         }
     };
+
 
     const menuGroups = [
         {
@@ -434,22 +448,23 @@ export default function CustomerDashboard() {
         const { error } = await supabase.from('reviews').insert({
             user_id: user.id,
             product_id: reviewData.productId,
+            order_id: reviewData.orderId, // Save the order_id
             rating: reviewData.rating,
             comment: reviewData.comment
-        });
+        } as any);
 
         if (error) {
             alert('บันทึกรีวิวไม่สำเร็จ: ' + error.message);
         } else {
             alert('ขอบคุณสำหรับการรีวิว!');
             setReviewModalOpen(false);
-            setReviewData({ productId: 0, rating: 5, comment: '' });
+            setReviewData({ orderId: 0, productId: 0, rating: 5, comment: '' });
             fetchUserReviews(); // Update reviewed set
         }
     };
 
-    const openReviewModal = (productId: number) => {
-        setReviewData({ productId, rating: 5, comment: '' });
+    const openReviewModal = (productId: number, orderId: number) => {
+        setReviewData({ orderId, productId, rating: 5, comment: '' });
         setReviewModalOpen(true);
     };
 
@@ -519,6 +534,10 @@ export default function CustomerDashboard() {
 
                     {/* Content */}
                     <div className={['orders', 'techcoin'].includes(activeTab) ? "col-span-1 md:col-span-4" : "col-span-1 md:col-span-3"}>
+                        {activeTab === 'wishlist' && (
+                            <WishlistTab />
+                        )}
+
                         {activeTab === 'profile' && (
                             <div className="space-y-6 animate-fade-in">
                                 {/* Profile Header */}
@@ -927,17 +946,19 @@ export default function CustomerDashboard() {
                                                     <div className="space-y-4">
                                                         {order.order_items?.map((item: any) => (
                                                             <div key={item.id} className="flex gap-3 md:gap-4 items-start group/item">
-                                                                <div className="w-16 h-16 md:w-20 md:h-20 bg-gray-50 rounded-lg md:rounded-xl border border-gray-100 overflow-hidden flex-shrink-0 relative">
-                                                                    {item.products?.image_url ? (
-                                                                        <img src={item.products.image_url} className="w-full h-full object-cover transition-transform duration-500 group-hover/item:scale-110" />
-                                                                    ) : (
-                                                                        <div className="w-full h-full flex items-center justify-center text-gray-300"><Package className="w-6 h-6" /></div>
-                                                                    )}
+                                                                <div className="w-16 h-16 md:w-20 md:h-20 bg-gray-50 rounded-lg md:rounded-xl border border-gray-100 overflow-hidden flex-shrink-0 relative group-hover/item:shadow-md transition-all">
+                                                                    <Link href={`/product/${item.product_id}`}>
+                                                                        {item.products?.image_url ? (
+                                                                            <img src={item.products.image_url} className="w-full h-full object-cover transition-transform duration-500 group-hover/item:scale-110 cursor-pointer" />
+                                                                        ) : (
+                                                                            <div className="w-full h-full flex items-center justify-center text-gray-300 cursor-pointer bg-gray-50"><Package className="w-6 h-6" /></div>
+                                                                        )}
+                                                                    </Link>
                                                                 </div>
                                                                 <div className="flex-1 min-w-0 py-0.5">
                                                                     <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2 md:gap-4">
                                                                         <div className="flex-1">
-                                                                            <Link href={`/product/${item.products?.id}`} className="font-bold text-gray-900 line-clamp-2 text-xs md:text-base leading-relaxed group-hover/item:text-[var(--primary-red)] transition-colors cursor-pointer hover:underline">
+                                                                            <Link href={`/product/${item.product_id}`} className="font-bold text-gray-900 line-clamp-2 text-xs md:text-base leading-relaxed group-hover/item:text-[var(--primary-red)] transition-colors cursor-pointer hover:underline decoration-transparent hover:decoration-[var(--primary-red)] underline-offset-2">
                                                                                 {item.products?.name}
                                                                             </Link>
 
@@ -970,9 +991,13 @@ export default function CustomerDashboard() {
 
                                                                             <div className="flex items-center gap-2 mt-2">
                                                                                 <span className="text-[10px] md:text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-md font-medium">x{item.quantity}</span>
-                                                                                {order.status === 'completed' && !userReviews.has(item.product_id) && (
-                                                                                    <button onClick={() => openReviewModal(item.product_id)} className="text-[10px] md:text-xs flex items-center gap-1 text-yellow-600 hover:text-yellow-700 font-bold bg-yellow-50 px-2 py-0.5 rounded-md border border-yellow-100">
-                                                                                        <Star className="w-3 h-3 fill-yellow-600" /> ให้คะแนน
+                                                                                {order.status === 'completed' && !userReviews.has(`${order.id}-${item.product_id}`) && (
+                                                                                    <button
+                                                                                        onClick={() => openReviewModal(item.product_id, order.id)}
+                                                                                        className="ml-2 group bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1.5 rounded-full text-[10px] md:text-xs font-bold shadow-md shadow-orange-100 hover:shadow-lg hover:shadow-orange-200 hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-1.5"
+                                                                                    >
+                                                                                        <Star className="w-3.5 h-3.5 fill-white text-white group-hover:scale-110 transition-transform duration-300" />
+                                                                                        <span>ให้คะแนน</span>
                                                                                     </button>
                                                                                 )}
                                                                             </div>
@@ -1145,6 +1170,32 @@ export default function CustomerDashboard() {
                                 </div>
                             </div>
                         )}
+
+                        {activeTab === 'payment' && (
+                            <div className="space-y-6 animate-fade-in">
+                                {/* Header */}
+                                <div className="bg-white p-6 rounded-xl shadow-sm flex items-center justify-between border border-gray-100">
+                                    <h2 className="text-xl font-bold flex items-center gap-2 text-gray-800">
+                                        <CreditCard className="text-[var(--primary-red)]" /> ช่องทางชำระเงิน
+                                    </h2>
+                                </div>
+
+                                {/* Content */}
+                                <div className="bg-white p-12 rounded-xl shadow-sm border border-gray-100 min-h-[400px] flex flex-col items-center justify-center text-center">
+                                    <div className="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center mb-6">
+                                        <CreditCard className="w-10 h-10 text-[var(--primary-red)] opacity-50" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-gray-900 mb-2">ยังไม่รองรับการชำระเงินออนไลน์</h3>
+                                    <p className="text-gray-500 max-w-sm mx-auto">
+                                        ขออภัยในความไม่สะดวก ขณะนี้เว็บไซต์ยังไม่เปิดให้บริการระบบชำระเงินผ่านช่องทางออนไลน์
+                                    </p>
+                                    <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-100 text-sm text-gray-600">
+                                        <p>ท่านสามารถชำระเงินได้โดยการโอนเงินผ่านบัญชีธนาคาร</p>
+                                        <p className="font-bold mt-1">หรือติดต่อสอบถามเพิ่มเติมได้ที่ Admin</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -1169,38 +1220,237 @@ export default function CustomerDashboard() {
                 )}
 
                 {/* Review Modal */}
+                {/* Review Modal */}
                 {reviewModalOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-                        <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-sm">
-                            <h3 className="text-lg font-bold mb-4">รีวิวสินค้า</h3>
-                            <form onSubmit={handleSubmitReview}>
-                                <div className="flex gap-2 justify-center mb-6">
-                                    {[1, 2, 3, 4, 5].map(star => (
-                                        <button
-                                            key={star}
-                                            type="button"
-                                            onClick={() => setReviewData({ ...reviewData, rating: star })}
-                                            className="focus:outline-none transition-transform hover:scale-110"
-                                        >
-                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={star <= reviewData.rating ? "gold" : "#e5e7eb"} className="w-8 h-8">
-                                                <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
-                                            </svg>
-                                        </button>
-                                    ))}
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-200">
+                        <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md relative animate-in zoom-in-95 duration-200 border border-gray-100">
+                            <button
+                                onClick={() => setReviewModalOpen(false)}
+                                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-2 rounded-full transition-all"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+
+                            <div className="text-center mb-8">
+                                <div className="w-16 h-16 bg-yellow-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-yellow-100 shadow-sm animate-bounce-short">
+                                    <Star className="w-8 h-8 text-yellow-500 fill-yellow-500" />
                                 </div>
-                                <textarea
-                                    className="w-full border border-gray-300 rounded-lg p-3 text-sm mb-4"
-                                    rows={3}
-                                    placeholder="เขียนรีวิวสินค้า..."
-                                    value={reviewData.comment}
-                                    onChange={e => setReviewData({ ...reviewData, comment: e.target.value })}
-                                />
-                                <div className="flex justify-end gap-2">
-                                    <button type="button" onClick={() => setReviewModalOpen(false)} className="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded-lg text-sm">ยกเลิก</button>
-                                    <button type="submit" className="px-4 py-2 bg-[var(--primary-red)] text-white rounded-lg hover:bg-red-700 text-sm">ส่งรีวิว</button>
+                                <h3 className="text-2xl font-black text-gray-900">รีวิวสินค้า</h3>
+                                <p className="text-gray-500 text-sm mt-1">ให้คะแนนความพึงพอใจของคุณ</p>
+                            </div>
+
+                            <form onSubmit={handleSubmitReview}>
+                                <div className="flex flex-col items-center gap-2 mb-8">
+                                    <div className="flex gap-3">
+                                        {[1, 2, 3, 4, 5].map(star => (
+                                            <button
+                                                key={star}
+                                                type="button"
+                                                onClick={() => setReviewData({ ...reviewData, rating: star })}
+                                                className="focus:outline-none transition-all duration-300 hover:scale-125 active:scale-95 group relative"
+                                            >
+                                                <Star
+                                                    className={`w-10 h-10 transition-colors duration-300 ${star <= reviewData.rating
+                                                        ? "fill-yellow-400 text-yellow-400 drop-shadow-md"
+                                                        : "fill-gray-100 text-gray-200 hover:fill-yellow-200 hover:text-yellow-200"
+                                                        }`}
+                                                />
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <span className="text-sm font-bold text-yellow-600 h-5 mt-2 bg-yellow-50 px-3 py-1 rounded-full border border-yellow-100">
+                                        {reviewData.rating === 5 && "😍 ยอดเยี่ยมที่สุด!"}
+                                        {reviewData.rating === 4 && "😊 ดีมาก ชอบเลย"}
+                                        {reviewData.rating === 3 && "🙂 พอใช้ได้"}
+                                        {reviewData.rating === 2 && "😕 ต้องปรับปรุง"}
+                                        {reviewData.rating === 1 && "😫 แย่มาก"}
+                                    </span>
+                                </div>
+
+                                <div className="space-y-2 mb-8">
+                                    <label className="text-sm font-bold text-gray-700 ml-1">ความคิดเห็นเพิ่มเติม</label>
+                                    <textarea
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm focus:outline-none focus:border-[var(--primary-red)] focus:bg-white focus:ring-4 focus:ring-red-50 transition-all resize-none placeholder:text-gray-400"
+                                        rows={4}
+                                        placeholder="บอกเราว่าคุณชอบสินค้าชิ้นนี้ตรงไหน..."
+                                        value={reviewData.comment}
+                                        onChange={e => setReviewData({ ...reviewData, comment: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setReviewModalOpen(false)}
+                                        className="px-4 py-3 text-gray-500 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold transition-colors"
+                                    >
+                                        ยกเลิก
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="px-4 py-3 bg-gradient-to-r from-[var(--primary-red)] to-red-600 text-white rounded-xl font-bold hover:shadow-lg hover:shadow-red-200 transform hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <span>ส่งรีวิว</span>
+                                        <ArrowUpRight className="w-4 h-4" />
+                                    </button>
                                 </div>
                             </form>
                         </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+// Wishlist Tab Component
+function WishlistTab() {
+    const { user } = useAuth();
+    const { addToCart } = useCart();
+    const router = useRouter();
+    const [wishlistItems, setWishlistItems] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchWishlist = async () => {
+            if (!user) return;
+            try {
+                const { data, error } = await supabase
+                    .from('wishlist' as any)
+                    .select(`
+                        id,
+                        created_at,
+                        products (
+                            id,
+                            name,
+                            price,
+                            image_url,
+                            category
+                        )
+                    `)
+                    .eq('user_id', user.id)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+                const items = data.map((item: any) => ({
+                    wishlistId: item.id,
+                    ...item.products
+                }));
+                setWishlistItems(items);
+            } catch (error) {
+                console.error('Error fetching wishlist:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchWishlist();
+    }, [user]);
+
+    const handleRemoveFromWishlist = async (wishlistId: number) => {
+        if (!confirm('ต้องการลบสินค้านี้ออกจากรายการที่ถูกใจ?')) return;
+        try {
+            const { error } = await supabase.from('wishlist' as any).delete().eq('id', wishlistId);
+            if (error) throw error;
+            setWishlistItems(prev => prev.filter(item => item.wishlistId !== wishlistId));
+        } catch (error: any) {
+            alert('ลบไม่สำเร็จ: ' + error.message);
+        }
+    };
+
+    if (loading) return (
+        <div className="space-y-6 animate-fade-in">
+            <div className="bg-white p-6 rounded-xl shadow-sm flex items-center justify-between">
+                <div className="h-8 w-48 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+            <div className="bg-white p-12 rounded-xl shadow-sm flex items-center justify-center min-h-[400px]">
+                <div className="w-10 h-10 border-4 border-[var(--primary-red)] border-t-transparent rounded-full animate-spin"></div>
+            </div>
+        </div>
+    );
+
+    return (
+        <div className="space-y-6 animate-fade-in">
+            {/* Header - Detached Card matching Profile */}
+            <div className="bg-white p-6 rounded-xl shadow-sm flex justify-between items-center border border-gray-100">
+                <h2 className="text-xl font-bold flex items-center gap-2 text-gray-800">
+                    <Heart className="text-[var(--primary-red)] fill-[var(--primary-red)]" /> สินค้าที่ถูกใจ
+                    <span className="bg-red-50 text-[var(--primary-red)] text-xs py-0.5 px-2 rounded-full font-bold">{wishlistItems.length}</span>
+                </h2>
+                <Link
+                    href="/"
+                    className="bg-gray-900 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-[var(--primary-red)] transition-all flex items-center gap-2 shadow-sm hover:shadow-lg hover:shadow-red-200"
+                >
+                    <Plus className="w-4 h-4" /> เลือกซื้อสินค้าเพิ่ม
+                </Link>
+            </div>
+
+            {/* Content - Separate Card matching Profile Form container */}
+            <div className="bg-white p-6 md:p-8 rounded-xl shadow-sm min-h-[400px] border border-gray-100">
+                {wishlistItems.length === 0 ? (
+                    <div className="h-[340px] flex flex-col items-center justify-center text-center">
+                        <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-6 relative group cursor-pointer">
+                            <Heart className="w-10 h-10 text-gray-300 group-hover:text-red-300 transition-colors" />
+                            <div className="absolute inset-0 bg-red-50 rounded-full scale-0 group-hover:scale-100 transition-transform -z-10"></div>
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">ยังไม่มีสินค้าที่ถูกใจ</h3>
+                        <p className="text-gray-500 mb-8 max-w-sm mx-auto text-sm">
+                            กดปุ่มหัวใจที่สินค้าที่คุณชอบ เพื่อเก็บไว้ดูและสั่งซื้อภายหลัง
+                        </p>
+                        <Link href="/" className="text-[var(--primary-red)] font-bold hover:underline flex items-center gap-1">
+                            ไปหน้าแรก <ChevronRight className="w-4 h-4" />
+                        </Link>
+                    </div>
+                ) : (
+                    <div className="flex flex-col gap-4">
+                        {wishlistItems.map((item) => (
+                            <div key={item.wishlistId} className="group relative bg-white border border-gray-100 rounded-2xl p-6 transition-all duration-300 hover:shadow-xl hover:shadow-gray-100/50 hover:border-red-100">
+                                <div className="flex flex-col sm:flex-row gap-6 items-center">
+                                    {/* Image */}
+                                    <Link href={`/product/${item.id}`} className="shrink-0 relative w-32 h-32 bg-gray-50 rounded-xl overflow-hidden p-4 group-hover:bg-white transition-colors border border-transparent group-hover:border-gray-100">
+                                        <img
+                                            src={item.image_url || '/placeholder.png'}
+                                            alt={item.name}
+                                            className="w-full h-full object-contain mix-blend-multiply transition-transform duration-500 group-hover:scale-110"
+                                        />
+                                    </Link>
+
+                                    {/* Content */}
+                                    <div className="flex-1 w-full text-center sm:text-left">
+                                        <div className="mb-2 flex items-center justify-center sm:justify-start gap-2">
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 bg-gray-100 px-2 py-1 rounded-md">
+                                                {item.category}
+                                            </span>
+                                        </div>
+                                        <Link href={`/product/${item.id}`} className="text-lg font-bold text-gray-900 line-clamp-1 hover:text-[var(--primary-red)] transition-colors mb-2">
+                                            {item.name}
+                                        </Link>
+                                        <div className="flex items-center justify-center sm:justify-start gap-2">
+                                            <div className="text-2xl font-bold text-[var(--primary-red)]">
+                                                ฿{item.price.toLocaleString()}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div className="flex items-center gap-3 w-full sm:w-auto justify-center sm:justify-end border-t sm:border-t-0 border-gray-100 pt-4 sm:pt-0 mt-2 sm:mt-0">
+                                        <button
+                                            onClick={() => handleRemoveFromWishlist(item.wishlistId)}
+                                            className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all border border-transparent hover:border-red-100"
+                                            title="ลบรายการ"
+                                        >
+                                            <Trash2 className="w-5 h-5" />
+                                        </button>
+                                        <button
+                                            onClick={() => addToCart({ id: item.id, name: item.name, price: item.price, image: item.image_url, category: item.category })}
+                                            className="h-10 px-6 bg-gray-900 text-white rounded-xl font-bold text-sm hover:bg-[var(--primary-red)] transition-all shadow-sm hover:shadow-lg hover:shadow-red-200 hover:-translate-y-0.5 flex items-center gap-2 whitespace-nowrap"
+                                        >
+                                            <ShoppingCart className="w-4 h-4" /> ใส่ตะกร้า
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 )}
             </div>

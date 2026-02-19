@@ -103,8 +103,8 @@ export default function Footer() {
                             <h4 className="text-white font-bold text-lg mb-6">ติดต่อเรา</h4>
                             <div className="space-y-4 text-sm text-gray-200">
                                 <p>
-                                    เลขที่ 252 ตำบล หนองแสง อำเภอปากพลี<br />
-                                    นครนายก 26130
+                                    252 ตำบล ในเมือง อำเภอเมืองอุบลราชธานี<br />
+                                    จังหวัด อุบลราชธานี 34000
                                 </p>
                                 <p>โทรศัพท์: 02 105 4757</p>
                                 <p>อีเมล: info@supertech.com</p>
